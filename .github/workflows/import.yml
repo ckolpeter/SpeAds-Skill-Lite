@@ -1,0 +1,22 @@
+name: Import verified v1.0.0
+on:
+  push:
+    paths: ['.github/workflows/import.yml']
+permissions:
+  contents: write
+jobs:
+  import-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Verify and import approved source
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 'https://raw.githubusercontent.com/ckolpeter/SpeAds-Skill-Lite/ecc27f637f8dd9c1df6964a44834fc7ff8d95e86/.import/restore.py' -o "$RUNNER_TEMP/retail-restore.py"
+          echo "16231fa6d7f77d325f1e69e12ab84fc73b6d25b043f09ca1f8065b98f90fa409  $RUNNER_TEMP/retail-restore.py" | sha256sum --check
+          python "$RUNNER_TEMP/retail-restore.py"
