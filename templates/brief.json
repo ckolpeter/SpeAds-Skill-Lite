@@ -1,0 +1,44 @@
+{
+  "platform": "shopee",
+  "market": "TW",
+  "currency": "TWD",
+  "source": {
+    "kind": "user_provided",
+    "note": "Replace with a de-identified source description; no account data."
+  },
+  "money_decimals": 2,
+  "campaign": {
+    "mode": "full_site",
+    "days": 14,
+    "budget": null,
+    "account_ready": null,
+    "feature_confirmed": null,
+    "target_return": null,
+    "ad_rate": null
+  },
+  "products": [
+    {
+      "sku": "demo-cup",
+      "title": "Replace with your product title",
+      "stock": null,
+      "listing_ready": null,
+      "advertising_eligible": null,
+      "buy_box": null,
+      "order_revenue": null,
+      "order_costs": {
+        "cogs": null,
+        "platform_fees": null,
+        "fulfilment": null,
+        "other": null
+      },
+      "target_profit": null,
+      "expected_cvr": null,
+      "fee_base_per_order": null,
+      "terms": []
+    }
+  ],
+  "assets": {
+    "rights_confirmed": null,
+    "live_ready": null
+  }
+}

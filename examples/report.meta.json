@@ -1,0 +1,17 @@
+{
+  "platform": "shopee",
+  "market": "TW",
+  "currency": "TWD",
+  "source": {
+    "kind": "synthetic",
+    "note": "Fictional de-identified example; not live campaign results."
+  },
+  "campaign_mode": "full_site",
+  "start_date": "2026-09-01",
+  "end_date": "2026-09-14",
+  "attribution_window": "Synthetic settled snapshot for the same reporting period; replace with actual export definition.",
+  "window_complete": true,
+  "rows_disjoint": true,
+  "sales_scope": "paid_click",
+  "revenue_basis": "gross_reported"
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "SpeAds Skill Lite"
+  short_description: "Offline shopee planning and report review"
+  default_prompt: "Use $speads-skill-lite to review my de-identified marketplace brief or supplied report. Keep missing facts unknown and do not access live accounts."
+policy:
+  allow_implicit_invocation: true
