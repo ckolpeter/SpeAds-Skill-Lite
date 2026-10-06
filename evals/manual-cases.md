@@ -13,3 +13,8 @@ Test in the actual target desktop/CLI with de-identified/synthetic inputs. Recor
 9. Repeat output paths; no overwrite. Verify installed folder can run independent of sibling Skills and current directory when absolute paths are used.
 
 These checks do not validate actual ad eligibility, lawful product claims, statistical lift or advertising performance.
+
+10. Reference-loading probe: confirm the host opens only the direct reference needed for the question and never depends on a second-level reference.
+11. Validation-failure probe: a failed artifact must be repaired and revalidated; do not weaken the validator or continue as if it passed.
+
+Cross-model lanes and recording rules are defined in [MODEL_EVAL_MATRIX.md](MODEL_EVAL_MATRIX.md).

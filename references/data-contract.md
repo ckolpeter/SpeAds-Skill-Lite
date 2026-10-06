@@ -3,6 +3,14 @@
 All inputs must match the JSON schemas in `schemas/` plus the semantic checks in `scripts/toolkit.py`.
 No platform API enums or upload payloads are represented. Command output is a local artifact only.
 
+## Contents
+
+- [Brief input](#brief-input)
+- [Economics: one representative fulfilled order](#economics-one-representative-fulfilled-order)
+- [Readiness and budgets](#readiness-and-budgets)
+- [Report input: JSON or canonical CSV + metadata](#report-input-json-or-canonical-csv--metadata)
+- [Output and replay](#output-and-replay)
+
 ## Brief input
 
 Copy `templates/brief.json`. Required keys are present in the template. Keep unknowns as `null`, never as guessed zero.
