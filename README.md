@@ -1,4 +1,4 @@
-# SpeAds Skill Lite v1.1.0
+# SpeAds Skill Lite v1.2.0
 
 [繁體中文](docs/i18n/README.zh-TW.md) · [简体中文](docs/i18n/README.zh-CN.md) · [English](docs/i18n/README.en.md) · [日本語](docs/i18n/README.ja.md) · [한국어](docs/i18n/README.ko.md)
 
@@ -24,6 +24,7 @@ python3 scripts/toolkit.py plan examples/brief.synthetic.json --out-dir output/d
 python3 scripts/toolkit.py validate output/demo-plan/plan.json
 python3 scripts/toolkit.py analyze examples/report.csv --meta examples/report.meta.json --out-dir output/demo-analysis
 python3 scripts/toolkit.py validate output/demo-analysis/analysis.json
+python3 scripts/toolkit.py analyze examples/report.delivery.synthetic.json --out-dir output/demo-delivery
 ```
 
 每次重跑請使用新的 output 子目錄；不覆寫既有結果。輸出包含 plan.json 或 analysis.json 與可閱讀的 report.md。`examples/expected/` 有預先產生的合成案例，所有金額、商品、資格與成效都不是真實賣家資料。
@@ -33,6 +34,8 @@ python3 scripts/toolkit.py validate output/demo-analysis/analysis.json
 複製 [templates/brief.json](templates/brief.json)，填寫 marketplace site、currency、代表性訂單收入及不重複的各項成本；未知保留 null，不把未知成本當零。資料欄位與公式請讀 [data contract](references/data-contract.md)。
 
 原始平台報表必須先人工映射到 `sku,impressions,clicks,orders,spend,revenue` 六欄並填寫 [metadata](examples/report.meta.json)，或依 [report schema](schemas/report.schema.json) 準備 JSON。**不支援任意蝦皮／Lazada／其他平台原始 CSV 直接匯入。** 同一次報表不得混幣別、期間或歸因。只有確認各列互斥時才加總。
+
+企劃與報表都限定 `TW`／`TWD`。要診斷廣告花不出去，請在報表 JSON 或 CSV 的 metadata 加入 `spend_diagnostics`，填入同一商品的每日自然造訪、廣告曝光、廣告花費、適用預算，以及要比較的商品異動日期。輸出會列出觀察訊號、前後數值和缺漏欄位。可從[合成案例](examples/report.delivery.synthetic.json)開始。
 
 商品分攤只是均分的試投會計情境，不是最佳化模型或平台真實設定。CPS、CPC、自然加付費成交、淨收入及歸因 GMV 不可混用。本版不直接把毛利門檻與平台 gross GMV ROAS 相比，也不根據短期數字自動加預算或停止廣告。
 

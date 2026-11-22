@@ -10,15 +10,15 @@
     },
     "market": {
       "type": "string",
-      "pattern": "[A-Z]{2}",
-      "minLength": 2,
-      "maxLength": 2
+      "enum": [
+        "TW"
+      ]
     },
     "currency": {
       "type": "string",
-      "pattern": "[A-Z]{3}",
-      "minLength": 3,
-      "maxLength": 3
+      "enum": [
+        "TWD"
+      ]
     },
     "source": {
       "type": "object",
@@ -158,6 +158,111 @@
         ],
         "additionalProperties": false
       }
+    },
+    "spend_diagnostics": {
+      "type": "object",
+      "properties": {
+        "low_utilization_threshold": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
+          "maxLength": 48,
+          "minimum": 0,
+          "maximum": 1000000000000.0
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sku": {
+                "type": "string",
+                "pattern": "[A-Za-z0-9][A-Za-z0-9._-]{0,63}",
+                "maxLength": 64
+              },
+              "change_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "[0-9]{4}-[0-9]{2}-[0-9]{2}",
+                "maxLength": 10
+              },
+              "change_note": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "daily": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                      "pattern": "[0-9]{4}-[0-9]{2}-[0-9]{2}",
+                      "maxLength": 10
+                    },
+                    "organic_visits": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1000000000000
+                    },
+                    "ad_impressions": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1000000000000
+                    },
+                    "spend": {
+                      "type": [
+                        "string",
+                        "number",
+                        "null"
+                      ],
+                      "maxLength": 48,
+                      "minimum": 0,
+                      "maximum": 1000000000000.0
+                    },
+                    "budget": {
+                      "type": [
+                        "string",
+                        "number",
+                        "null"
+                      ],
+                      "maxLength": 48,
+                      "minimum": 0,
+                      "maximum": 1000000000000.0
+                    }
+                  },
+                  "required": [
+                    "date"
+                  ],
+                  "additionalProperties": false
+                },
+                "maxItems": 366
+              }
+            },
+            "required": [
+              "sku",
+              "daily"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 500
+        }
+      },
+      "required": [
+        "series"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [

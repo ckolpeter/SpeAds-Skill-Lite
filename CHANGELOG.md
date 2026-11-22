@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0 — Unreleased
+
+Restricted plan and report inputs to Shopee Taiwan and TWD. Added optional per-SKU daily delivery diagnostics with budget utilization, matched listing-change windows, and explicit missing data.
+
 ## Unreleased — Best-practices hardening (2026-10-06)
 
 Added direct reference routing, degrees-of-freedom guidance, ordered checklist, self-correction loop, explicit dependency policy, structural release-gate checks, and a cross-model evaluation matrix. Observed Claude Code baseline and authorization-tamper self-correction runs now pass on Haiku 4.5, Sonnet 5, and Opus 5; automatic multi-Skill discovery and Codex compatibility remain NOT_RUN. No live integration or data-contract semantics changed.

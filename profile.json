@@ -79,6 +79,6 @@
   ],
   "skill_id": "speads-skill-lite",
   "repo": "ckolpeter/SpeAds-Skill-Lite",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "source_policy": "2026-10-05 research snapshot; no live capability assertion; refresh manually before operating."
 }
