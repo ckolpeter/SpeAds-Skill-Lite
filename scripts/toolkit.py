@@ -14,6 +14,7 @@ import io
 import json
 import re
 import sys
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_DOWN, localcontext
 from pathlib import Path
 
@@ -23,6 +24,14 @@ MAX_ARTIFACT_BYTES = 16_000_000
 D = Decimal
 SENSITIVE = re.compile(r'(token|secret|password|cookie|authorization|api.?key|account.?id|campaign.?id|customer.?id)', re.I)
 SECRET_TEXT = re.compile(r'\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,})\b')
+DELIVERY_FIELDS = ('organic_visits', 'ad_impressions', 'spend', 'budget')
+DELIVERY_CHECKS = {
+    'NO_AD_IMPRESSIONS': 'Check campaign status, product eligibility, stock and listing availability.',
+    'LOW_BUDGET_UTILIZATION': 'Check daily budget history, campaign settings, eligibility and other changes in the same period.',
+    'ORGANIC_AND_AD_TRAFFIC_DOWN': 'Review the listing change alongside stock, price, promotions and comparable dates.',
+    'REVIEW_DELIVERY_DATA': 'Check whether spend and impressions belong to the same SKU and dates.',
+    'NO_POSITIVE_BUDGET': 'Confirm whether a positive budget applied to this SKU during the observation window.',
+}
 
 
 class InputError(ValueError):
@@ -150,12 +159,38 @@ def profile():
     return read_json(ROOT / 'profile.json')
 
 
+def report_date(value):
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise InputError('Invalid report or delivery date') from exc
+
+
+def check_spend_diagnostics(diagnostics, start, end, report_skus):
+    num(diagnostics.get('low_utilization_threshold'), optional=True, fraction=True)
+    seen = set()
+    for series in diagnostics['series']:
+        sku = series['sku']
+        require(sku in report_skus, 'Diagnostic SKU must match a report row')
+        require(sku not in seen, 'Duplicate diagnostic SKU')
+        seen.add(sku)
+        if series.get('change_date') is not None:
+            require(start <= report_date(series['change_date']) <= end, 'Product change date outside report dates')
+        dates = set()
+        for day in series['daily']:
+            observed = report_date(day['date'])
+            require(start <= observed <= end, 'Daily observation outside report dates')
+            require(observed not in dates, 'Duplicate daily observation date for the same SKU')
+            dates.add(observed)
+            for field in ('spend', 'budget'):
+                num(day.get(field), optional=True)
+
+
 def check_input(data, kind):
     text_safety(data)
     schema_check(data, read_json(ROOT / 'schemas' / (kind + '.schema.json')))
     cfg = profile()
     require(data['platform'] == cfg['platform'], 'Wrong platform for this Skill')
-    require(data['market'].strip(), 'Marketplace site is required; do not infer it from language')
     if kind == 'brief':
         require(data['campaign']['mode'] in cfg['modes'], 'Mode not supported by this v1')
         num(data['campaign']['budget'], optional=True)
@@ -175,17 +210,16 @@ def check_input(data, kind):
             if p['fee_base_per_order'] is not None:
                 require(num(p['fee_base_per_order']) > 0, 'Fee base must be positive')
     else:
-        from datetime import date
-        try:
-            require(date.fromisoformat(data['start_date']) <= date.fromisoformat(data['end_date']), 'Reversed report dates')
-        except ValueError as exc:
-            raise InputError('Invalid report dates') from exc
+        start, end = report_date(data['start_date']), report_date(data['end_date'])
+        require(start <= end, 'Reversed report dates')
         seen = set()
         for row in data['rows']:
             require(row['sku'] not in seen, 'Duplicate SKU: combine disjoint rows explicitly before import')
             seen.add(row['sku'])
             for field in ('spend', 'revenue'):
                 num(row[field], optional=True)
+        if 'spend_diagnostics' in data:
+            check_spend_diagnostics(data['spend_diagnostics'], start, end, seen)
     return cfg
 
 
@@ -308,6 +342,110 @@ def metrics(row, scope, campaign_mode, platform):
             'ad_cost_ratio_fraction': fmt(ratio(spend, revenue)), 'profit_or_incrementality_verified': False}
 
 
+def delivery_window(daily, start, end, label, missing):
+    days = [day for day in daily if start <= day['date'] <= end]
+    missing_days = (end - start).days + 1 - len(days)
+    if missing_days:
+        missing.append(f'{label}.daily: {missing_days} date(s) missing')
+    totals = {}
+    for field in DELIVERY_FIELDS:
+        values = [day.get(field) for day in days]
+        incomplete = any(value is None for value in values)
+        if incomplete:
+            missing.append(f'{label}.{field}')
+        totals[field] = None if missing_days or incomplete else sum((D(str(value)) for value in values), D(0))
+    totals['budget_utilization'] = ratio(totals['spend'], totals['budget'])
+    return {'start_date': start.isoformat(), 'end_date': end.isoformat()} | totals
+
+
+def format_delivery_window(window):
+    return {
+        key: fmt(value) if isinstance(value, D) else value
+        for key, value in window.items()
+    }
+
+
+def sku_spend_diagnosis(series, start, end, threshold):
+    missing = []
+    daily = [dict(day, date=report_date(day['date'])) for day in series['daily']]
+    change = series.get('change_date')
+    before, after = None, None
+    if change is None:
+        missing.append('change_date')
+    else:
+        change_day = report_date(change)
+        before_days, after_days = (change_day - start).days, (end - change_day).days
+        if before_days and after_days:
+            before_days = after_days = min(before_days, after_days)
+        if before_days:
+            before = delivery_window(daily, change_day - timedelta(days=before_days), change_day - timedelta(days=1), 'before', missing)
+        else:
+            missing.append('before.daily')
+        if after_days:
+            after = delivery_window(daily, change_day + timedelta(days=1), change_day + timedelta(days=after_days), 'after', missing)
+        else:
+            missing.append('after.daily')
+
+    report = delivery_window(daily, start, end, 'report', missing) if change is None else None
+    observation = after if change is not None else report
+
+    signals = []
+    if observation is not None:
+        impressions, spend, budget, utilization = (
+            observation[field] for field in ('ad_impressions', 'spend', 'budget', 'budget_utilization')
+        )
+        if impressions == 0:
+            signals.append('REVIEW_DELIVERY_DATA' if spend is not None and spend > 0 else 'NO_AD_IMPRESSIONS')
+        if budget == 0:
+            signals.append('NO_POSITIVE_BUDGET')
+        if impressions is not None and impressions > 0 and utilization is not None:
+            if utilization == 0 or (threshold is not None and utilization < threshold):
+                signals.append('LOW_BUDGET_UTILIZATION')
+            elif threshold is None:
+                missing.append('low_utilization_threshold')
+
+    changes = None
+    if before is not None and after is not None:
+        changes = {
+            field: after[field] - before[field] if after[field] is not None and before[field] is not None else None
+            for field in (*DELIVERY_FIELDS, 'budget_utilization')
+        }
+        traffic = (changes['organic_visits'], changes['ad_impressions'])
+        if all(value is not None and value < 0 for value in traffic):
+            signals.append('ORGANIC_AND_AD_TRAFFIC_DOWN')
+
+    return {
+        'sku': series['sku'],
+        'change_date': change,
+        'signals': signals,
+        'missing': missing,
+        'next_checks': [DELIVERY_CHECKS[signal] for signal in signals],
+        'before': None if before is None else format_delivery_window(before),
+        'after': None if after is None else format_delivery_window(after),
+        'report_window': None if report is None else format_delivery_window(report),
+        'change_after_minus_before': None if changes is None else format_delivery_window(changes),
+    }
+
+
+def spend_diagnostics_result(data):
+    diagnostics = data['spend_diagnostics']
+    start, end = report_date(data['start_date']), report_date(data['end_date'])
+    threshold = num(diagnostics.get('low_utilization_threshold'), optional=True, fraction=True)
+    series_by_sku = {series['sku']: series for series in diagnostics['series']}
+    return {
+        'low_utilization_threshold': fmt(threshold),
+        'rows': [
+            sku_spend_diagnosis(series_by_sku[row['sku']], start, end, threshold)
+            if row['sku'] in series_by_sku else {
+                'sku': row['sku'], 'signals': [], 'missing': ['daily series'], 'next_checks': [],
+                'change_date': None, 'before': None, 'after': None, 'report_window': None,
+                'change_after_minus_before': None,
+            }
+            for row in data['rows']
+        ],
+    }
+
+
 def report_result(data, cfg):
     mode = data['campaign_mode']
     require(mode in cfg['modes'], 'Report campaign mode not supported')
@@ -347,9 +485,13 @@ def report_result(data, cfg):
         totals = {'input_totals': summed, 'metrics': metrics(summed, data['sales_scope'], mode, cfg['platform'])}
     else:
         notes.append('TOTALS_WITHHELD: rows have not been confirmed disjoint.')
-    return {'rows': rows, 'totals': totals, 'notes': notes,
-            'revenue_basis': data['revenue_basis'], 'attribution_window': data['attribution_window'],
-            'source_refs': [s['id'] for s in cfg['sources']]}
+    result = {'rows': rows, 'totals': totals, 'notes': notes,
+              'revenue_basis': data['revenue_basis'], 'attribution_window': data['attribution_window'],
+              'source_refs': [s['id'] for s in cfg['sources']]}
+    if 'spend_diagnostics' in data:
+        result['spend_diagnostics'] = spend_diagnostics_result(data)
+        notes.append('Delivery comparisons describe coincident changes. They do not establish that a listing change caused them.')
+    return result
 
 
 def build(data, kind):
@@ -359,7 +501,7 @@ def build(data, kind):
         result = plan_result(data, cfg) if kind == 'brief' else report_result(data, cfg)
     artifact_kind = 'plan' if kind == 'brief' else 'analysis'
     return {'contract_name': cfg['slug'] + '.' + artifact_kind, 'contract_version': '1.0',
-            'producer_version': '1.0.0', 'kind': artifact_kind,
+            'producer_version': cfg['version'], 'kind': artifact_kind,
             'local_id': 'local-' + hashlib.sha256(canonical(data).encode()).hexdigest()[:16],
             'status': 'PLAN_READY' if kind == 'brief' else 'ANALYSIS_READY',
             'review': 'HUMAN_REVIEW_REQUIRED', 'publish_authorized': False,
@@ -372,6 +514,8 @@ def validate_artifact(value):
     require(isinstance(value, dict) and value.get('kind') in ('plan', 'analysis'), 'Expected plan or analysis artifact')
     require('input' in value, 'Artifact lacks input snapshot')
     rebuilt = build(value['input'], 'brief' if value['kind'] == 'plan' else 'report')
+    if value.get('producer_version') == '1.0.0' and 'spend_diagnostics' not in value['input']:
+        rebuilt['producer_version'] = '1.0.0'
     require(canonical(value) == canonical(rebuilt), 'Artifact replay mismatch: changed result, boundary or metadata')
     return value
 
@@ -412,6 +556,17 @@ def render(value):
         lines += ['', 'Revenue basis: ' + cell(r['revenue_basis']), '',
                   'Attribution window: ' + cell(r['attribution_window']), '',
                   'Totals: ' + ('WITHHELD — rows not confirmed disjoint' if r['totals'] is None else 'Calculated from user-confirmed disjoint rows; see details.')]
+        if 'spend_diagnostics' in r:
+            lines += ['', '## Ad delivery / 廣告花費診斷', '',
+                      '| SKU | Signals | Budget use before | Budget use after / report | Missing inputs |',
+                      '|---|---|---:|---:|---|']
+            for row in r['spend_diagnostics']['rows']:
+                before = row['before'] or {}
+                observed = row['after'] or row['report_window'] or {}
+                lines.append('| ' + ' | '.join(cell(value) for value in (
+                    row['sku'], ', '.join(row['signals']) or '—', before.get('budget_utilization'),
+                    observed.get('budget_utilization'), ', '.join(row['missing']) or '—',
+                )) + ' |')
     lines += ['', '## Interpretation limits / 解讀限制', '']
     lines += ['- ' + cell(x) for x in r['notes']]
     lines += ['', '## Detailed result / 完整結果', '', '<pre>',

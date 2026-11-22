@@ -73,7 +73,8 @@ def structure(root=ROOT):
     best_practices(root, skill)
     front = skill.split('---', 2)[1]
     name = re.search(r'^name: (.+)$', front, re.M)
-    if not name or name.group(1) != cfg['skill_id'] or cfg['version'] != '1.0.0':
+    version = re.search(r'^  version: "([0-9]+\.[0-9]+\.[0-9]+)"$', front, re.M)
+    if not name or name.group(1) != cfg['skill_id'] or not version or version.group(1) != cfg['version']:
         raise ValueError('Skill metadata mismatch')
     # Directory names are intentionally irrelevant; ZIP, clone and install locations differ.
     for source in cfg['sources']:

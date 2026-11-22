@@ -9,12 +9,13 @@ No platform API enums or upload payloads are represented. Command output is a lo
 - [Economics: one representative fulfilled order](#economics-one-representative-fulfilled-order)
 - [Readiness and budgets](#readiness-and-budgets)
 - [Report input: JSON or canonical CSV + metadata](#report-input-json-or-canonical-csv--metadata)
+- [Optional ad delivery diagnostics](#optional-ad-delivery-diagnostics)
 - [Output and replay](#output-and-replay)
 
 ## Brief input
 
 Copy `templates/brief.json`. Required keys are present in the template. Keep unknowns as `null`, never as guessed zero.
-`platform` is fixed by this package. `market` is a two-letter marketplace-site label, not user nationality or document language; `currency` is one uppercase three-letter currency code. The program does not validate site availability or currency legal tender. No FX conversion.
+`platform` is fixed by this package. Briefs and reports require `market: "TW"` and `currency: "TWD"`. The marketplace site comes from the input. There is no FX conversion.
 `source.kind` is `synthetic` or `user_provided`; `source.note` describes the de-identified source.
 `money_decimals` specifies accounting precision for budget splits, from 0 through 4; select the precision appropriate to your billing context.
 
@@ -68,6 +69,16 @@ All rows share one platform, site, currency, campaign mode, date interval, reven
 
 CTR = clicks/impressions; effective_spend_per_click = spend/clicks; CPM = spend×1000/impressions. The cpc field is populated only for CPC modes; eBay General keeps cpc null and records billing_model=CPS. Effective spend/click on CPS billing is only an accounting ratio, never a CPC bid. Return = supplied revenue/spend and is labeled paid, blended or unclassified according to scope. Cost per reported order = spend/reported orders; it does not prove acquisition cost or incrementality. The tool never compares gross-attributed returns directly to net-revenue economic break-even thresholds and never infers total profit from attribution.
 Incomplete attribution, missing facts or quality warnings prevent decisive interpretations. `REVIEW_ZERO_ORDERS_NOT_AUTOMATIC_PAUSE` requests manual investigation only; it is not an automated stop instruction. No universal sample-size or performance benchmark is invented.
+
+## Optional ad delivery diagnostics
+
+Add `spend_diagnostics` to the report JSON or to the canonical CSV's metadata JSON. The CSV header stays the same. See [the synthetic delivery report](../examples/report.delivery.synthetic.json).
+
+- Each entry in `series` uses a matching local `sku` and up to 366 unique `daily` dates within the report. Use complete calendar days and a consistent SKU, mode, time zone and measurement basis. The illustrative example focuses on delivery inputs separate from attributed sales.
+- Each day supplies `organic_visits` excluding ads, `ad_impressions`, `spend` and the effective TWD `budget` for that same SKU and day. Keep missing measurements as null or omit them. Leave a shared campaign budget unknown if it cannot be attributed to the SKU. Enter zero only when observed.
+- `change_date` identifies one selected product change. An optional `change_note` records what changed. If the date is known, the comparison takes the largest matching number of calendar days immediately before and after it, excluding the change date. With only one side in the report, that side is shown and the other is marked missing. With no change date, delivery signals use the full report window.
+- Budget utilization is total spend divided by total budget for each window. It stays null if dates or relevant measurements are missing or the budget total is zero. Set `low_utilization_threshold` to your own fraction from 0 to 1. With positive impressions and budget, zero spend is flagged directly. Positive spend is flagged only if the utilization is strictly below the supplied threshold.
+- The output lists all applicable signals and the missing dates or fields that affect the result. A simultaneous decline in organic visits and ad impressions describes the two windows. Check the change and other contemporaneous factors before attributing a cause.
 
 ## Output and replay
 

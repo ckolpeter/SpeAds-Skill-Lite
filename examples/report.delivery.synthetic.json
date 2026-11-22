@@ -1,0 +1,153 @@
+{
+  "platform": "shopee",
+  "market": "TW",
+  "currency": "TWD",
+  "source": {
+    "kind": "synthetic",
+    "note": "Fictional SKU delivery histories for testing; all dates and measures are synthetic."
+  },
+  "campaign_mode": "full_site",
+  "start_date": "2026-09-01",
+  "end_date": "2026-09-05",
+  "attribution_window": "Attribution not supplied; daily delivery comparison only.",
+  "window_complete": null,
+  "rows_disjoint": true,
+  "sales_scope": "unknown",
+  "revenue_basis": "unknown",
+  "rows": [
+    {
+      "sku": "demo-no-impressions",
+      "impressions": null,
+      "clicks": null,
+      "orders": null,
+      "spend": null,
+      "revenue": null
+    },
+    {
+      "sku": "demo-low-spend",
+      "impressions": null,
+      "clicks": null,
+      "orders": null,
+      "spend": null,
+      "revenue": null
+    },
+    {
+      "sku": "demo-traffic-down",
+      "impressions": null,
+      "clicks": null,
+      "orders": null,
+      "spend": null,
+      "revenue": null
+    }
+  ],
+  "spend_diagnostics": {
+    "low_utilization_threshold": "0.25",
+    "series": [
+      {
+        "sku": "demo-no-impressions",
+        "change_date": "2026-09-03",
+        "change_note": "Synthetic listing edit",
+        "daily": [
+          {
+            "date": "2026-09-01",
+            "organic_visits": 50,
+            "ad_impressions": 300,
+            "spend": 55,
+            "budget": 100
+          },
+          {
+            "date": "2026-09-02",
+            "organic_visits": 55,
+            "ad_impressions": 320,
+            "spend": 60,
+            "budget": 100
+          },
+          {
+            "date": "2026-09-04",
+            "organic_visits": 53,
+            "ad_impressions": 0,
+            "spend": 0,
+            "budget": 100
+          },
+          {
+            "date": "2026-09-05",
+            "organic_visits": 58,
+            "ad_impressions": 0,
+            "spend": 0,
+            "budget": 100
+          }
+        ]
+      },
+      {
+        "sku": "demo-low-spend",
+        "change_date": "2026-09-03",
+        "change_note": "Synthetic listing edit",
+        "daily": [
+          {
+            "date": "2026-09-01",
+            "organic_visits": 50,
+            "ad_impressions": 300,
+            "spend": 55,
+            "budget": 100
+          },
+          {
+            "date": "2026-09-02",
+            "organic_visits": 55,
+            "ad_impressions": 320,
+            "spend": 60,
+            "budget": 100
+          },
+          {
+            "date": "2026-09-04",
+            "organic_visits": 53,
+            "ad_impressions": 350,
+            "spend": 10,
+            "budget": 100
+          },
+          {
+            "date": "2026-09-05",
+            "organic_visits": 58,
+            "ad_impressions": 360,
+            "spend": 10,
+            "budget": 100
+          }
+        ]
+      },
+      {
+        "sku": "demo-traffic-down",
+        "change_date": "2026-09-03",
+        "change_note": "Synthetic listing edit",
+        "daily": [
+          {
+            "date": "2026-09-01",
+            "organic_visits": 130,
+            "ad_impressions": 900,
+            "spend": 80,
+            "budget": 100
+          },
+          {
+            "date": "2026-09-02",
+            "organic_visits": 150,
+            "ad_impressions": 960,
+            "spend": 85,
+            "budget": 100
+          },
+          {
+            "date": "2026-09-04",
+            "organic_visits": 70,
+            "ad_impressions": 450,
+            "spend": 45,
+            "budget": 100
+          },
+          {
+            "date": "2026-09-05",
+            "organic_visits": 75,
+            "ad_impressions": 460,
+            "spend": 40,
+            "budget": 100
+          }
+        ]
+      }
+    ]
+  }
+}
